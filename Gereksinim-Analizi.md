@@ -18,5 +18,5 @@
 
 9.Gönderilere Yorum Yapma: Kullanıcılar, paylaşımlar hakkında yorum yaparak düşüncelerini ifade edebilmelidir.
 
-20.Takipten Çıkma: Kullanıcılar, takip ettikleri kişileri istedikleri zaman takipten çıkarabilmelidir.
+10.Takipten Çıkma: Kullanıcılar, takip ettikleri kişileri istedikleri zaman takipten çıkarabilmelidir.
 
