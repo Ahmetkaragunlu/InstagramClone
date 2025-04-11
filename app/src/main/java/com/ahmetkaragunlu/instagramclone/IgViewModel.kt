@@ -30,6 +30,8 @@ class IgViewModel @Inject constructor(
     val storage: FirebaseStorage
 ) : ViewModel() {
 
+
+
     val signedIn = mutableStateOf(false)
     val inProgress = mutableStateOf(false)
     val userData = mutableStateOf<UserData?>(null)
@@ -297,24 +299,6 @@ class IgViewModel @Inject constructor(
         }
     }
 
-    private fun refreshPosts() {
-        val currentUid = auth.currentUser?.uid
-        if (currentUid != null ) {
-            refreshPostsProgress.value = true
-            db.collection(POSTS).whereEqualTo("userId", currentUid).get()
-                .addOnSuccessListener { documents ->
-                    convertPosts(documents, posts)
-                    refreshPostsProgress.value = false
-                }
-                .addOnFailureListener { exc ->
-                    handleException(exc, "Cannot fetch posts")
-                    refreshPostsProgress.value = false
-                }
-        } else {
-            handleException(customMessage = "Error: username unavailable. Unable to refresh posts")
-            onLogout()
-        }
-    }
 
     private fun convertPosts(documents: QuerySnapshot, outState: MutableState<List<PostData>>) {
         val newPosts = mutableListOf<PostData>()
@@ -361,27 +345,7 @@ class IgViewModel @Inject constructor(
         }
     }
 
-    private fun getPersonalizedFeed() {
-        val following = userData.value?.following
-        if (!following.isNullOrEmpty()) {
-            postsFeedProgress.value = true
-            db.collection(POSTS).whereIn("userId", following).get()
-                .addOnSuccessListener {
-                    convertPosts(documents = it, outState = postsFeed)
-                    if (postsFeed.value.isEmpty()) {
-                        getGeneralFeed()
-                    } else {
-                        postsFeedProgress.value = false
-                    }
-                }
-                .addOnFailureListener { exc ->
-                    handleException(exc, "Cannot get personalized feed")
-                    postsFeedProgress.value = false
-                }
-        } else {
-            getGeneralFeed()
-        }
-    }
+
 
     private fun getGeneralFeed() {
         postsFeedProgress.value = true
@@ -414,12 +378,57 @@ class IgViewModel @Inject constructor(
                     db.collection(POSTS).document(postId).update("likes", newLikes)
                         .addOnSuccessListener {
                             postData.likes = newLikes
+                            // Verileri güncelledikten sonra tüm gönderi verilerini yenileyelim
+                            refreshPosts()
+                            getPersonalizedFeed()
                         }
                         .addOnFailureListener {
                             handleException(it, "Unable to like post")
                         }
                 }
             }
+        }
+    }
+
+    // refreshPosts fonksiyonunu public yapalım ki diğer sınıflardan da çağırabilelim
+    fun refreshPosts() {
+        val currentUid = auth.currentUser?.uid
+        if (currentUid != null ) {
+            refreshPostsProgress.value = true
+            db.collection(POSTS).whereEqualTo("userId", currentUid).get()
+                .addOnSuccessListener { documents ->
+                    convertPosts(documents, posts)
+                    refreshPostsProgress.value = false
+                }
+                .addOnFailureListener { exc ->
+                    handleException(exc, "Cannot fetch posts")
+                    refreshPostsProgress.value = false
+                }
+        } else {
+            handleException(customMessage = "Error: username unavailable. Unable to refresh posts")
+            onLogout()
+        }
+    }
+
+    fun getPersonalizedFeed() {
+        val following = userData.value?.following
+        if (!following.isNullOrEmpty()) {
+            postsFeedProgress.value = true
+            db.collection(POSTS).whereIn("userId", following).get()
+                .addOnSuccessListener {
+                    convertPosts(documents = it, outState = postsFeed)
+                    if (postsFeed.value.isEmpty()) {
+                        getGeneralFeed()
+                    } else {
+                        postsFeedProgress.value = false
+                    }
+                }
+                .addOnFailureListener { exc ->
+                    handleException(exc, "Cannot get personalized feed")
+                    postsFeedProgress.value = false
+                }
+        } else {
+            getGeneralFeed()
         }
     }
 

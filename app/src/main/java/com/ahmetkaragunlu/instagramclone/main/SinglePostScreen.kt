@@ -10,6 +10,8 @@ import androidx.compose.material3.Text
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -56,7 +58,6 @@ fun SinglePostScreen(navController: NavController, vm: IgViewModel, post: PostDa
         }
     }
 }
-
 @Composable
 fun SinglePostDisplay(
     navController: NavController,
@@ -65,6 +66,14 @@ fun SinglePostDisplay(
     nbComments: Int
 ) {
     val userData = vm.userData.value
+    val isLiked = remember { mutableStateOf(post.likes?.contains(userData?.userId) == true) }
+    val likesCount = remember { mutableStateOf(post.likes?.size ?: 0) }
+
+    LaunchedEffect(key1 = post.likes) {
+        isLiked.value = post.likes?.contains(userData?.userId) == true
+        likesCount.value = post.likes?.size ?: 0
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -114,12 +123,27 @@ fun SinglePostDisplay(
 
     Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
         Image(
-            painter = painterResource(id = R.drawable.ic_like),
+            painter = painterResource(
+                id = if (isLiked.value) R.drawable.ic_like else R.drawable.ic_dislike
+            ),
             contentDescription = null,
-            modifier = Modifier.size(24.dp),
-            colorFilter = ColorFilter.tint(Color.Red)
+            modifier = Modifier
+                .size(24.dp)
+                .clickable {
+                    // Beğeni durumunu güncelle
+                    isLiked.value = !isLiked.value
+                    if (isLiked.value) {
+                        likesCount.value = likesCount.value + 1
+                    } else {
+                        likesCount.value = (likesCount.value - 1).coerceAtLeast(0)
+                    }
+                    vm.onLikePost(post)
+                },
+            colorFilter = ColorFilter.tint(
+                if (isLiked.value) Color.Red else Color.Black
+            )
         )
-        Text(text = " ${post.likes?.size ?: 0} likes", modifier = Modifier.padding(start = 0.dp))
+        Text(text = " ${likesCount.value} likes", modifier = Modifier.padding(start = 0.dp))
     }
 
     Row(modifier = Modifier.padding(8.dp)) {
